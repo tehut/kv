@@ -9,6 +9,17 @@ import (
 type Ops interface{
 }
 
+type Write struct{
+    data string
+}
+
+type Read struct{
+}
+
+type Delete struct{
+}
+
+
 type  Node struct {
     parent *Node 
 	ops map[string]Ops
@@ -21,29 +32,32 @@ type Root struct{
 
 }
 
-func newNode(parent *Node) *Node {
+// StevEx: What are your thoughts on using "this" as the reciever. I've seen some differing opinions on the internet
+        // also is the reciever a pointer to root? is that what r *root means? That r "is the type pointer to root" and when we call the method we are "passing"
+        // the currently instantiated struct?  My main point of confusion is that in newNode() we seem to be passing an argument but most other methods seem to pass 
+// ---------------------------------------------------------
+
+func (r *root) newNode(parent) *Node {
         return &Node{parent:parent}
 }
 
-// StevEx: What are your thoughts on using "this" as the reciever. I've seen some differing opinions on the internet
-        // also is the reciever a pointer to root? is that what r *root means? That r "is the type pointer to root"?
 
-func start(r *root) *Node {
+func (r *root) start() *Node {
     var parent *Node
         if operations == nil {
             parent = *r
         }else {parent = operations}
 
-        newOperations := r.newNode(parent)
+        newOperations := r.newNode(operations)
         r.operations = newOperations
 }
 
-func fetchAncestor(r *root) *Node{
+func (r *root) fetchAncestor() *Node{
      ancestorNode := &operations.parent
      return ancestorNode
 }
 
-func abort(r *root) *Node {
+func (r *root) abort() *Node {
     if operations == nil{
         fmt.Println("You do not have a transaction open at this time")
     }else {
@@ -51,7 +65,7 @@ func abort(r *root) *Node {
     }
 }
 
-func commit(r *root) map[string]string{
+func (r *root) commit() map[string]string{
     currentNodeMap = r.operations
     for key,value :range currentNodeMap {
         // realized I could have just done an if statement after I wrote it as a switch
@@ -66,63 +80,55 @@ func commit(r *root) map[string]string{
     }
 }
 
-type Write struct{
-	op string
-}
 
-type Read struct{
-	op string
-}
 
-type Delete struct{
-	op string
-}
 
-    func (r *root) read(k){
-		display_value := ""
-		element_value :=""
-		for current_map[k] != nil{
+// Psuedocode implementation
+//     func (r *root) read(k){
+// 		display_value := ""
+// 		element_value :=""
+// 		for current_map[k] != nil{
 
-		}
-        until current_map[k] != nil {
+// 		}
+//         until current_map[k] != nil {
             
-                func(*element)Next{
-					element_value =current_map[k]
+//                 func(*element)Next{
+// 					element_value =current_map[k]
 				
-            }
-        }
+//             }
+//         }
 	   
-		display_value = element_value
-		// include 
+// 		display_value = element_value
+// 		// include 
 
-    func write (k,v){
-        current_map[k]=v
-    }
+//     func write (k,v){
+//         current_map[k]=v
+//     }
 
-    func delete(k){
-        delete(current_map,k)
-    }
+//     func delete(k){
+//         delete(current_map,k)
+//     }
 
-    func abort{
-        // reset the head of the linked list to previous
-    }
+//     func abort{
+//         // reset the head of the linked list to previous
+//     }
 
-    func commit {
-        for range current_map(k,v){
-        &parent[k]=v
-        }
-    }
+//     func commit {
+//         for range current_map(k,v){
+//         &parent[k]=v
+//         }
+//     }
 
-    func quit {
-        quit = true
-    }
-}
+//     func quit {
+//         quit = true
+//     }
+// }
 
 
-func main (){
-quit = false
+// func main (){
+// quit = false
 
-while quit == false 
+// while quit == false 
 	
 	// create an empty node with a pointer to nill
     // run command prompt
