@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"errors"
+	"os"
 )
 
 type ops interface {
@@ -19,13 +21,13 @@ type deleteCommand struct {
 
 type node struct {
 	// change to transaction
-	parent *node
-	ops    map[string]ops
+	parent      *node
+	transaction map[string]ops
 }
 
 type root struct {
-	db         map[string]string
-	operations *node
+	db           map[string]string
+	transactions *node
 	// change to transactions
 }
 
@@ -35,29 +37,40 @@ type root struct {
 // ---------------------------------------------------------
 // commands should be methods others can be functions
 
+func repl() string {
+	var input string
+	scanner := bufio.NewScanner(os.Stdin)
+	input = scanner.Text()
+	return input
+}
+
+func readCommand(input string) {
+	// implement reading commands
+}
+
 func newNode(parent *node) *node {
 	return &node{parent: parent}
 }
 
 func (r *root) start() {
-	r.operations = newNode(r.operations)
+	r.transactions = newNode(r.transactions)
 }
 
 func (r *root) abort() error {
-	if r.operations == nil {
+	if r.transactions == nil {
 		return errors.New("You do not have a transaction open at this time")
 	}
 
-	r.operations = r.operations.parent
+	r.transactions = r.transactions.parent
 	return nil
 }
 
 func (r *root) commit() {
-	// error if operations is nil
-	if r.operations.parent == nil {
+	// error if transactions is nil
+	if r.transactions.parent == nil {
 		// if parent is nil
-		// loop through execute operations on db
-		for key, value := range r.operations.ops {
+		// loop through execute transactions on db
+		for key, value := range r.transactions.transaction {
 			// realized I could have just done an if statement after I wrote it as a switch
 			// kept it as a switch mostly to play with the syntax in go--which is almost identical to js
 			switch value.(type) {
@@ -68,14 +81,25 @@ func (r *root) commit() {
 			}
 		}
 	} else {
-	// loop through operations and copy to parent operations map
-		for key,value :range r.operations.ops {
-			r.operations.parent.operations[key] = value
+		// loop through transactions and copy to parent transactions map
+		for key, value := range r.transactions.transaction {
+			r.transactions.parent.transaction[key] = value
 		}
 	}
 
 	// exit
 
+}
+
+func main() {
+	var quit bool
+	for {
+		if quit == true {
+			break
+		}
+
+		repl()
+	}
 }
 
 // Psuedocode implementation
