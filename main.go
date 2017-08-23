@@ -12,24 +12,59 @@ type Ops interface{
 type  Node struct {
     parent *Node 
 	ops map[string]Ops
-	// including type in name is redundent with strong typing
-	// go likes CamelCase
    }
-// func (a *Node) append(input string) {
-// 	// should check for/strip punctuation if using Title
-	
-// 	to_append := strings.Title(input)
-// 	// switch statement nothing fancy
-// } 
+
 
 type Root struct{
 	dictionary map[string]string
 	operations *Node
 
-	//func newNode(parent *Node) *Node {(that's what it returns; a pointer to anode) 
-		// return &Node{parent:parent}
 }
 
+func newNode(parent *Node) *Node {
+        return &Node{parent:parent}
+}
+
+// StevEx: What are your thoughts on using "this" as the reciever. I've seen some differing opinions on the internet
+        // also is the reciever a pointer to root? is that what r *root means? That r "is the type pointer to root"?
+
+func start(r *root) *Node {
+    var parent *Node
+        if operations == nil {
+            parent = *r
+        }else {parent = operations}
+
+        newOperations := r.newNode(parent)
+        r.operations = newOperations
+}
+
+func fetchAncestor(r *root) *Node{
+     ancestorNode := &operations.parent
+     return ancestorNode
+}
+
+func abort(r *root) *Node {
+    if operations == nil{
+        fmt.Println("You do not have a transaction open at this time")
+    }else {
+        r.operations = fetchAncestor()
+    }
+}
+
+func commit(r *root) map[string]string{
+    currentNodeMap = r.operations
+    for key,value :range currentNodeMap {
+        // realized I could have just done an if statement after I wrote it as a switch
+        // kept it as a switch mostly to play with the syntax in go--which is almost identical to js
+        switch value {
+            case Write struct:
+            // have not checked if go allows for overwriting maps or if we should just implem
+            dictionary[key] = value.data
+            case Delete struct:
+            delete(dictionary,key) 
+        }
+    }
+}
 
 type Write struct{
 	op string
@@ -42,14 +77,6 @@ type Read struct{
 type Delete struct{
 	op string
 }
-// make start a method on root
-	// 
-
-// func recievers should always be pointers unless you have a compelling reason to use pass by value instead of pass by ref
-// includes a function that 
-	// 
-// START ABORT and COMMIT are methods on ROOT
-// READ/WRITE/DELETE are methods on ROOT
 
     func (r *root) read(k){
 		display_value := ""
