@@ -3,7 +3,9 @@ package main
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"os"
+	"strings"
 )
 
 type ops interface {
@@ -19,41 +21,80 @@ type write struct {
 type deleteCommand struct {
 }
 
-type node struct {
+type transaction struct {
 	// change to transaction
-	parent      *node
-	transaction map[string]ops
+	parent         *transaction
+	transactionLog map[string]ops
 }
 
 type root struct {
 	db           map[string]string
-	transactions *node
+	transactions *transaction
 	// change to transactions
 }
 
 // StevEx: What are your thoughts on using "this" as the reciever. I've seen some differing opinions on the internet
 // also is the reciever a pointer to root? is that what r *root means? That r "is the type pointer to root" and when we call the method we are "passing"
-// the currently instantiated struct?  My main point of confusion is that in newNode() we seem to be passing an argument but most other methods seem to pass
+// the currently instantiated struct?  My main point of confusion is that in newTransaction() we seem to be passing an argument but most other methods seem to pass
 // ---------------------------------------------------------
 // commands should be methods others can be functions
 
-func repl() string {
-	var input string
-	scanner := bufio.NewScanner(os.Stdin)
-	input = scanner.Text()
-	return input
+func repl() {
+
+	reader := bufio.NewReader(os.Stdin)
+	input, _ := reader.ReadString('\n')
+	parseCommand(input)
 }
 
-func readCommand(input string) {
-	// implement reading commands
+func (r *root) read(key string) (string, error) {
+	if r.db[key] != 0 int {
+		return "", r.db[key]
+	}
+	displayValue := ""
+	currentTransaction := r.transactions
+	for {
+		if currentTransaction.transactionLog[key] == write {
+			displayValue = r.transactions[key].data
+		} else {
+			currentTransaction = currentTransaction.parent
+			if currentTransaction == nil {
+				return displayValue, errors.New("That key was not found")
+			}
+		}
+		return displayValue, nil
+	}
+
+}
+func parseCommand(input string) {
+
+	input = strings.ToLower(input)
+	command := strings.Split(input, " ")
+	fmt.Println(command[1])
+	switch command[0] {
+	case "read":
+		value, err :=read(command[1])
+		if err != nil{
+			fmt.Println(err)
+		}else {
+			fmt.Println(value)
+		}
+	case "write":
+	case "delete":
+		delete(r.db, command[1])
+	case "start":
+	case "abort":
+	case "commit":
+	}
 }
 
-func newNode(parent *node) *node {
-	return &node{parent: parent}
+
+
+func (parent *transaction) newTransaction() *transaction {
+	return &transaction{parent: parent}
 }
 
 func (r *root) start() {
-	r.transactions = newNode(r.transactions)
+	r.transactions = newTransaction(r.transactions)
 }
 
 func (r *root) abort() error {
@@ -92,6 +133,7 @@ func (r *root) commit() {
 }
 
 func main() {
+	// datastore := root{}
 	var quit bool
 	for {
 		if quit == true {
@@ -99,6 +141,7 @@ func main() {
 		}
 
 		repl()
+
 	}
 }
 
@@ -148,7 +191,7 @@ func main() {
 
 // while quit == false
 
-// create an empty node with a pointer to nill
+// create an empty transaction with a pointer to nill
 // run command prompt
 // downcase result
 // switch statement
