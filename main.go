@@ -36,46 +36,68 @@ type root struct {
 // StevEx: What are your thoughts on using "this" as the reciever. I've seen some differing opinions on the internet
 // also is the reciever a pointer to root? is that what r *root means? That r "is the type pointer to root" and when we call the method we are "passing"
 // the currently instantiated struct?  My main point of confusion is that in newTransaction() we seem to be passing an argument but most other methods seem to pass
-// ---------------------------------------------------------
-// commands should be methods others can be functions
-
-func repl() {
+func repl(root root) {
 
 	reader := bufio.NewReader(os.Stdin)
 	input, _ := reader.ReadString('\n')
-	parseCommand(input)
+	root.parseCommand(input)
 }
 
 func (r *root) read(key string) (string, error) {
-	if r.db[key] != 0 int {
-		return "", r.db[key]
-	}
 	displayValue := ""
+	if r.transactions == nil {
+		if value, ok := r.db[key]; ok {
+			return value, nil
+		}
+
+		if r.transactions == nil {
+			return displayValue, errors.New("That key was not found")
+		}
+	}
+
 	currentTransaction := r.transactions
+
 	for {
-		if currentTransaction.transactionLog[key] == write {
-			displayValue = r.transactions[key].data
+		// refactor as switch like in code you looked at with Alex earlier
+		// check to make sure pointer is not nil before using it
+		if value, ok := currentTransaction.transactionLog[key]; ok {
+			switch currentTransaction.transactionLog[key].(type) {
+			case write:
+				displayValue = currentTransaction.transactionLog[key].(write).data
+				fmt.Println(displayValue, "  this is the data in the write struct")
+				return displayValue, nil
+			}
+
 		} else {
-			currentTransaction = currentTransaction.parent
-			if currentTransaction == nil {
-				return displayValue, errors.New("That key was not found")
+			if currentTransaction.parent != nil {
+				currentTransaction = currentTransaction.parent
 			}
 		}
-		return displayValue, nil
+
+		// if currentTransaction.transactionLog[key].(type) == write {
+		// 	displayValue = r.transactions[key].data
+		// } else {
+		// 	// check to make sure pointer is not nil before using it
+		// 	currentTransaction = currentTransaction.parent
+		// 	if currentTransaction == nil {
+		// 		return displayValue, errors.New("That key was not found")
+		// 	}
 	}
-
+	// return displayValue, nil
 }
-func parseCommand(input string) {
 
+// }
+func (r *root) parseCommand(input string) {
+	// only to string command[0]
 	input = strings.ToLower(input)
-	command := strings.Split(input, " ")
+	command := strings.Fields(input)
 	fmt.Println(command[1])
 	switch command[0] {
 	case "read":
-		value, err :=read(command[1])
-		if err != nil{
+		value, err := r.read(command[1])
+		if err != nil {
 			fmt.Println(err)
-		}else {
+		} else {
 			fmt.Println(value)
 		}
 	case "write":
@@ -87,14 +109,13 @@ func parseCommand(input string) {
 	}
 }
 
-
-
-func (parent *transaction) newTransaction() *transaction {
-	return &transaction{parent: parent}
+func (r *root) newTransaction(transaction) transaction {
+	return transaction{parent: &transaction}
 }
 
 func (r *root) start() {
-	r.transactions = newTransaction(r.transactions)
+	newestTransaction := r.newTransaction(r.transactions)
+	r.transactions = &newestTransaction
 }
 
 func (r *root) abort() error {
@@ -107,7 +128,8 @@ func (r *root) abort() error {
 }
 
 func (r *root) commit() {
-	// error if transactions is nil
+	// error if transactions is ni
+	// check to make sure pointer is not nil--nil pointer errors will always *** you if you're not careful
 	if r.transactions.parent == nil {
 		// if parent is nil
 		// loop through execute transactions on db
@@ -115,6 +137,7 @@ func (r *root) commit() {
 			// realized I could have just done an if statement after I wrote it as a switch
 			// kept it as a switch mostly to play with the syntax in go--which is almost identical to js
 			switch value.(type) {
+			// this is the syntax to use in parseCommand
 			case write:
 				r.db[key] = value.(write).data
 			case deleteCommand:
@@ -123,9 +146,14 @@ func (r *root) commit() {
 		}
 	} else {
 		// loop through transactions and copy to parent transactions map
+
 		for key, value := range r.transactions.transaction {
 			r.transactions.parent.transaction[key] = value
 		}
+		// reset the pointer to the parent or nil.
+		// if there are no open transactions set transaction pointer to nil
+		// if transactions are open set pointer to parent
+		// check for open transactions on root.transactions
 	}
 
 	// exit
@@ -133,14 +161,14 @@ func (r *root) commit() {
 }
 
 func main() {
-	// datastore := root{}
+	datastore := root{}
 	var quit bool
 	for {
 		if quit == true {
 			break
 		}
 
-		repl()
+		repl(datastore)
 
 	}
 }
