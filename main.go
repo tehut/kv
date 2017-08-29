@@ -29,7 +29,7 @@ type root struct {
 }
 
 // ---------------------------------------------------------------------------
-func repl(root root) {
+func repl(root *root) {
 
 	reader := bufio.NewReader(os.Stdin)
 	input, _ := reader.ReadString('\n')
@@ -58,7 +58,7 @@ func (r *root) read(key string) (string, error) {
 			switch currentTransaction.transactionLog[key].(type) {
 			case write:
 				displayValue = currentTransaction.transactionLog[key].(write).data
-				fmt.Println(displayValue, "  this is the data in the write struct")
+				// fmt.Println(displayValue, "  this is the data in the write struct")
 				return displayValue, nil
 			}
 
@@ -97,7 +97,6 @@ func (r *root) parseCommand(input string) {
 			fmt.Println(value)
 		}
 	case "write":
-		fmt.Println(len(command))
 		if len(command) == 3 {
 			r.write(command[1], command[2])
 		} else {
@@ -108,7 +107,6 @@ func (r *root) parseCommand(input string) {
 		delete(r.db, command[1])
 	case "start":
 		r.start()
-		fmt.Println(command[0])
 	case "abort":
 		r.abort()
 	case "commit":
@@ -116,12 +114,13 @@ func (r *root) parseCommand(input string) {
 	}
 }
 
-func (r *root) newTransaction(passedtransaction *transaction) transaction {
+// this can be static function
+func newTransaction(passedtransaction *transaction) transaction {
 	var t transaction
 	if passedtransaction != nil {
-		t = transaction{parent: passedtransaction}
+		t = transaction{parent: passedtransaction, transactionLog: make(map[string]ops)}
 	} else {
-		t = transaction{parent: nil}
+		t = transaction{parent: nil, transactionLog: make(map[string]ops)}
 		return t
 	}
 	return t
@@ -130,10 +129,10 @@ func (r *root) newTransaction(passedtransaction *transaction) transaction {
 func (r *root) start() {
 	var newestTransaction transaction
 	if r.transactions != nil {
-		newestTransaction = r.newTransaction(r.transactions)
+		newestTransaction = newTransaction(r.transactions)
 
 	} else {
-		newestTransaction = r.newTransaction(nil)
+		newestTransaction = newTransaction(nil)
 	}
 	r.transactions = &newestTransaction
 }
@@ -156,12 +155,14 @@ func (r *root) commit() {
 			case deleteCommand:
 				delete(r.db, key)
 			}
+			r.transactions = nil
 		}
 	} else {
 		for key, value := range r.transactions.transactionLog {
 			r.transactions.parent.transactionLog[key] = value
 		}
 		// reset the pointer to the parent or nil.
+		r.transactions = r.transactions.parent
 		// if there are no open transactions set transaction pointer to nil
 		// if transactions are open set pointer to parent
 		// check for open transactions on root.transactions
@@ -177,6 +178,6 @@ func main() {
 		if quit == true {
 			break
 		}
-		repl(datastore)
+		repl(&datastore)
 	}
 }
