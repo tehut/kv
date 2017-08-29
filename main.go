@@ -203,6 +203,7 @@ func (r *root) parseCommand(input string) {
 		if len(command) != 1 {
 			fmt.Println("that is not a valid command")
 		} else {
+			fmt.Println("Exiting")
 			os.Exit(0)
 		}
 	}
