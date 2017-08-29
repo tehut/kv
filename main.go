@@ -29,22 +29,49 @@ type root struct {
 }
 
 // ---------------------------------------------------------------------------
-func repl(root *root) {
-
+func repl(root *root) bool {
+	var quit bool
 	reader := bufio.NewReader(os.Stdin)
 	input, _ := reader.ReadString('\n')
 	root.parseCommand(input)
+	return quit
 }
 
 func newRoot() root {
 	return root{transactions: nil, db: make(map[string]string)}
 }
 
+func newTransaction(passedtransaction *transaction) transaction {
+	var t transaction
+	if passedtransaction != nil {
+		t = transaction{parent: passedtransaction, transactionLog: make(map[string]ops)}
+	} else {
+		t = transaction{parent: nil, transactionLog: make(map[string]ops)}
+		return t
+	}
+	return t
+}
+
+func changeQuit() bool {
+	quit := true
+	return quit
+}
+
+// ---------------------------------------------------------------------------
+
 func (r *root) write(key string, value string) {
 	if r.transactions != nil {
 		r.transactions.transactionLog[key] = write{data: value}
 	} else {
 		r.db[key] = value
+	}
+}
+
+func (r *root) deleteFunction(key string) {
+	if r.transactions != nil {
+		r.transactions.transactionLog[key] = deleteCommand{}
+	} else {
+		delete(r.db, key)
 	}
 }
 
@@ -82,50 +109,6 @@ func (r *root) read(key string) (string, error) {
 	return displayValue, nil
 }
 
-// }
-func (r *root) parseCommand(input string) {
-	// only to string command[0]
-	input = strings.ToLower(input)
-	command := strings.Fields(input)
-	// fmt.Println(command[1])
-	switch command[0] {
-	case "read":
-		value, err := r.read(command[1])
-		if err != nil {
-			fmt.Println(err)
-		} else {
-			fmt.Println(value)
-		}
-	case "write":
-		if len(command) == 3 {
-			r.write(command[1], command[2])
-		} else {
-			err := errors.New("You have not supplied enough arguments for the WRITE command")
-			fmt.Println(err)
-		}
-	case "delete":
-		delete(r.db, command[1])
-	case "start":
-		r.start()
-	case "abort":
-		r.abort()
-	case "commit":
-		r.commit()
-	}
-}
-
-// this can be static function
-func newTransaction(passedtransaction *transaction) transaction {
-	var t transaction
-	if passedtransaction != nil {
-		t = transaction{parent: passedtransaction, transactionLog: make(map[string]ops)}
-	} else {
-		t = transaction{parent: nil, transactionLog: make(map[string]ops)}
-		return t
-	}
-	return t
-}
-
 func (r *root) start() {
 	var newestTransaction transaction
 	if r.transactions != nil {
@@ -155,29 +138,65 @@ func (r *root) commit() {
 			case deleteCommand:
 				delete(r.db, key)
 			}
+			// I've already confirmed that there is no open parent transaction so at this point I reset the head to nil
 			r.transactions = nil
 		}
 	} else {
 		for key, value := range r.transactions.transactionLog {
 			r.transactions.parent.transactionLog[key] = value
 		}
-		// reset the pointer to the parent or nil.
+		// I've already checked that r.transactions.parent exists and now im resetting the head
 		r.transactions = r.transactions.parent
-		// if there are no open transactions set transaction pointer to nil
-		// if transactions are open set pointer to parent
-		// check for open transactions on root.transactions
+
 	}
 	// exit
+	// sometimes I commit and it doesn't exit!
+}
+
+func (r *root) parseCommand(input string) bool {
+	// only to string command[0]
+	input = strings.ToLower(input)
+	command := strings.Fields(input)
+	// fmt.Println(command[1])
+	switch command[0] {
+	case "read":
+		value, err := r.read(command[1])
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println(value)
+		}
+	case "write":
+		if len(command) == 3 {
+			r.write(command[1], command[2])
+		} else {
+			err := errors.New("You have not supplied enough arguments for the WRITE command")
+			fmt.Println(err)
+		}
+	case "delete":
+		r.deleteFunction(command[1])
+	case "start":
+		r.start()
+	case "abort":
+		r.abort()
+	case "commit":
+		r.commit()
+	case "quit":
+		return changeQuit()
+		// quit doesn't work, I'm not really sure how to catch this boolean and apply it in func main
+	}
+	return false
 }
 
 func main() {
 	datastore := newRoot()
 
-	var quit bool
 	for {
+		quit := repl(&datastore)
+
 		if quit == true {
+			fmt.Println("you've quit")
 			break
 		}
-		repl(&datastore)
 	}
 }
