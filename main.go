@@ -52,11 +52,6 @@ func newTransaction(passedtransaction *transaction) transaction {
 	return t
 }
 
-func changeQuit() bool {
-	quit := true
-	return quit
-}
-
 // ---------------------------------------------------------------------------
 
 func (r *root) write(key string, value string) {
@@ -76,23 +71,23 @@ func (r *root) deleteFunction(key string) {
 }
 
 func (r *root) read(key string) (string, error) {
-	displayValue := ""
-
 	currentTransaction := r.transactions
-
 	for currentTransaction != nil {
 		if _, ok := currentTransaction.transactionLog[key]; ok {
 			switch currentTransaction.transactionLog[key].(type) {
+			default:
+				return "", errors.New("Do not recognize command, delete and write are recognized transactions")
+
+			case deleteCommand:
+				return "", errors.New("We have deleted that key")
 			case write:
-				displayValue = currentTransaction.transactionLog[key].(write).data
+				return currentTransaction.transactionLog[key].(write).data, nil
 				// fmt.Println(displayValue, "  this is the data in the write struct")
-				return displayValue, nil
+
 			}
 
 		} else {
-			if currentTransaction.parent != nil {
-				currentTransaction = currentTransaction.parent
-			}
+			currentTransaction = currentTransaction.parent
 		}
 
 	}
@@ -100,13 +95,11 @@ func (r *root) read(key string) (string, error) {
 	// in Go.  Will currentTransaction be the original value when we drop out of the loop or will it still be the
 	// last assigned value? I'd expect that it would be the last assigned value.
 
-	if r.transactions == nil {
-		if value, ok := r.db[key]; ok {
-			return value, nil
-		}
-		return displayValue, errors.New("That key was not found")
+	if value, ok := r.db[key]; ok {
+		return value, nil
 	}
-	return displayValue, nil
+	return "", errors.New("That key was not found")
+
 }
 
 func (r *root) start() {
@@ -130,6 +123,9 @@ func (r *root) abort() error {
 }
 
 func (r *root) commit() {
+	if r.transactions == nil {
+		return
+	}
 	if r.transactions.parent == nil {
 		for key, value := range r.transactions.transactionLog {
 			switch value.(type) {
@@ -153,18 +149,24 @@ func (r *root) commit() {
 	// sometimes I commit and it doesn't exit!
 }
 
-func (r *root) parseCommand(input string) bool {
+func (r *root) parseCommand(input string) {
 	// only to string command[0]
 	input = strings.ToLower(input)
 	command := strings.Fields(input)
 	// fmt.Println(command[1])
 	switch command[0] {
+	default:
+		fmt.Println("That is not a valid command")
 	case "read":
-		value, err := r.read(command[1])
-		if err != nil {
-			fmt.Println(err)
+		if len(command) == 2 {
+			value, err := r.read(command[1])
+			if err != nil {
+				fmt.Println(err)
+			} else {
+				fmt.Println(value)
+			}
 		} else {
-			fmt.Println(value)
+			fmt.Println("That is not a valid command")
 		}
 	case "write":
 		if len(command) == 3 {
@@ -174,29 +176,44 @@ func (r *root) parseCommand(input string) bool {
 			fmt.Println(err)
 		}
 	case "delete":
-		r.deleteFunction(command[1])
+		if len(command) == 2 {
+			r.deleteFunction(command[1])
+		} else {
+			fmt.Println("That is not a valid command")
+		}
 	case "start":
-		r.start()
+		if len(command) != 1 {
+			fmt.Println("that is not a valid command")
+		} else {
+			r.start()
+		}
 	case "abort":
-		r.abort()
+		if len(command) != 1 {
+			fmt.Println("that is not a valid command")
+		} else {
+			r.abort()
+		}
 	case "commit":
-		r.commit()
+		if len(command) != 1 {
+			fmt.Println("that is not a valid command")
+		} else {
+			r.commit()
+		}
 	case "quit":
-		return changeQuit()
-		// quit doesn't work, I'm not really sure how to catch this boolean and apply it in func main
+		if len(command) != 1 {
+			fmt.Println("that is not a valid command")
+		} else {
+			os.Exit(0)
+		}
 	}
-	return false
+
 }
 
 func main() {
 	datastore := newRoot()
 
 	for {
-		quit := repl(&datastore)
+		repl(&datastore)
 
-		if quit == true {
-			fmt.Println("you've quit")
-			break
-		}
 	}
 }
