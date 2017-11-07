@@ -28,9 +28,9 @@ type root struct {
 	transactions *transaction
 }
 
-// ---------------------------------------------------------------------------
 func repl(root *root) bool {
 	var quit bool
+	fmt.Println("Please enter a command:")
 	reader := bufio.NewReader(os.Stdin)
 	input, _ := reader.ReadString('\n')
 	root.parseCommand(input)
@@ -43,6 +43,7 @@ func newRoot() root {
 
 func newTransaction(passedtransaction *transaction) transaction {
 	var t transaction
+
 	if passedtransaction != nil {
 		t = transaction{parent: passedtransaction, transactionLog: make(map[string]ops)}
 	} else {
@@ -51,8 +52,6 @@ func newTransaction(passedtransaction *transaction) transaction {
 	}
 	return t
 }
-
-// ---------------------------------------------------------------------------
 
 func (r *root) write(key string, value string) {
 	if r.transactions != nil {
@@ -91,9 +90,6 @@ func (r *root) read(key string) (string, error) {
 		}
 
 	}
-	// I'm still using the pointer that's a member of the root struct here because I'm not sure how scope works
-	// in Go.  Will currentTransaction be the original value when we drop out of the loop or will it still be the
-	// last assigned value? I'd expect that it would be the last assigned value.
 
 	if value, ok := r.db[key]; ok {
 		return value, nil
@@ -145,15 +141,12 @@ func (r *root) commit() {
 		r.transactions = r.transactions.parent
 
 	}
-	// exit
-	// sometimes I commit and it doesn't exit!
 }
 
 func (r *root) parseCommand(input string) {
-	// only to string command[0]
+
 	input = strings.ToLower(input)
 	command := strings.Fields(input)
-	// fmt.Println(command[1])
 	switch command[0] {
 	default:
 		fmt.Println("That is not a valid command")
@@ -211,6 +204,7 @@ func (r *root) parseCommand(input string) {
 }
 
 func main() {
+
 	datastore := newRoot()
 
 	for {
